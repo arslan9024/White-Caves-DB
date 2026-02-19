@@ -1,0 +1,204 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Property",
+  "description": "Schema for properties in White Caves Real Estate database",
+  "type": "object",
+  "required": ["propertyId", "title", "type", "status", "location", "price"],
+  "properties": {
+    "propertyId": {
+      "type": "string",
+      "description": "Unique identifier for the property"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title of the property listing"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the property"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["apartment", "villa", "townhouse", "penthouse", "office", "retail", "warehouse", "land"],
+      "description": "Type of property"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["available", "sold", "leased", "pending", "off-market"],
+      "description": "Current status of the property"
+    },
+    "transactionType": {
+      "type": "string",
+      "enum": ["sale", "rent", "both"],
+      "description": "Whether property is for sale, rent, or both"
+    },
+    "location": {
+      "type": "object",
+      "required": ["area", "city"],
+      "properties": {
+        "area": {
+          "type": "string",
+          "description": "Area name (e.g., Dubai Marina, Downtown Dubai)"
+        },
+        "city": {
+          "type": "string",
+          "default": "Dubai",
+          "description": "City name"
+        },
+        "address": {
+          "type": "string",
+          "description": "Full street address"
+        },
+        "building": {
+          "type": "string",
+          "description": "Building name"
+        },
+        "coordinates": {
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          }
+        }
+      }
+    },
+    "price": {
+      "type": "object",
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Price amount"
+        },
+        "currency": {
+          "type": "string",
+          "default": "AED",
+          "description": "Currency code (default: AED)"
+        },
+        "paymentFrequency": {
+          "type": "string",
+          "enum": ["one-time", "monthly", "yearly"],
+          "description": "For rental properties"
+        }
+      }
+    },
+    "specifications": {
+      "type": "object",
+      "properties": {
+        "bedrooms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bathrooms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "area": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["sqft", "sqm"],
+              "default": "sqft"
+            }
+          }
+        },
+        "parkingSpaces": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "furnished": {
+          "type": "string",
+          "enum": ["furnished", "semi-furnished", "unfurnished"]
+        },
+        "floor": {
+          "type": "integer"
+        },
+        "totalFloors": {
+          "type": "integer"
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of property features (e.g., gym, pool, security)"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "description": "Reference to agent/user ID"
+        },
+        "name": {
+          "type": "string"
+        },
+        "contact": {
+          "type": "string"
+        }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to owner/user ID"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when property was added"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when property was last updated"
+    },
+    "viewCount": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Number of times property was viewed"
+    }
+  }
+}

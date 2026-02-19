@@ -1,0 +1,30 @@
+{
+  "name": "white-caves-db",
+  "version": "1.0.0",
+  "description": "MongoDB Database for White Caves Real Estate LLC - Real Estate Web Application",
+  "main": "index.js",
+  "scripts": {
+    "setup": "node examples/setup-database.js",
+    "test": "echo \"No tests configured yet\" && exit 0"
+  },
+  "keywords": [
+    "mongodb",
+    "database",
+    "real-estate",
+    "dubai",
+    "white-caves"
+  ],
+  "author": "White Caves Real Estate LLC",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arslan9024/White-Caves-DB.git"
+  }
+}

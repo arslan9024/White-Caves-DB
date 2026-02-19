@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User",
+  "description": "Schema for users in White Caves Real Estate database (agents, buyers, sellers)",
+  "type": "object",
+  "required": ["userId", "email", "role", "name"],
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "Unique identifier for the user"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User's email address"
+    },
+    "name": {
+      "type": "object",
+      "required": ["firstName", "lastName"],
+      "properties": {
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        }
+      }
+    },
+    "role": {
+      "type": "string",
+      "enum": ["admin", "agent", "buyer", "seller", "landlord", "tenant"],
+      "description": "User role in the system"
+    },
+    "phone": {
+      "type": "object",
+      "properties": {
+        "countryCode": {
+          "type": "string",
+          "default": "+971"
+        },
+        "number": {
+          "type": "string"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "photo": {
+          "type": "string",
+          "description": "URL to profile photo"
+        },
+        "bio": {
+          "type": "string"
+        },
+        "nationality": {
+          "type": "string"
+        },
+        "language": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "agentDetails": {
+      "type": "object",
+      "description": "Additional details for agents",
+      "properties": {
+        "licenseNumber": {
+          "type": "string"
+        },
+        "company": {
+          "type": "string",
+          "default": "White Caves Real Estate LLC"
+        },
+        "specialization": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["residential", "commercial", "luxury", "leasing"]
+          }
+        },
+        "rating": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "completedDeals": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "description": "User preferences for property searches",
+      "properties": {
+        "propertyTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "priceRange": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "savedProperties": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of property IDs saved by the user"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

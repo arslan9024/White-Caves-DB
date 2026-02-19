@@ -1,0 +1,214 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Transaction",
+  "description": "Schema for real estate transactions (buying, selling, leasing)",
+  "type": "object",
+  "required": ["transactionId", "propertyId", "type", "status"],
+  "properties": {
+    "transactionId": {
+      "type": "string",
+      "description": "Unique identifier for the transaction"
+    },
+    "propertyId": {
+      "type": "string",
+      "description": "Reference to property ID"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["sale", "lease", "rent"],
+      "description": "Type of transaction"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in-progress", "completed", "cancelled", "on-hold"],
+      "description": "Current status of the transaction"
+    },
+    "buyer": {
+      "type": "object",
+      "description": "Buyer or tenant details",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Reference to buyer/tenant user ID"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        }
+      }
+    },
+    "seller": {
+      "type": "object",
+      "description": "Seller or landlord details",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Reference to seller/landlord user ID"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "description": "Agent handling the transaction",
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "description": "Reference to agent user ID"
+        },
+        "name": {
+          "type": "string"
+        },
+        "commission": {
+          "type": "object",
+          "properties": {
+            "percentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "financialDetails": {
+      "type": "object",
+      "properties": {
+        "agreedPrice": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "default": "AED"
+        },
+        "deposit": {
+          "type": "number",
+          "minimum": 0
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["cash", "bank-transfer", "mortgage", "cheque"]
+        },
+        "installments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "dueDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "isPaid": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "leasingDetails": {
+      "type": "object",
+      "description": "Additional details for leasing transactions",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "rentAmount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "paymentFrequency": {
+          "type": "string",
+          "enum": ["monthly", "quarterly", "yearly"]
+        },
+        "securityDeposit": {
+          "type": "number",
+          "minimum": 0
+        },
+        "renewalOption": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["contract", "title-deed", "passport", "visa", "emirates-id", "noc", "other"]
+          },
+          "url": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
