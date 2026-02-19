@@ -1,0 +1,594 @@
+// ============================================================================
+// WHITE CAVES REAL ESTATE PLATFORM - PRISMA SCHEMA
+// ============================================================================
+// Database: MongoDB Atlas
+// ORM: Prisma
+// Created: February 19, 2026
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// 1. ORGANIZATION (Company/Tenant)
+// ============================================================================
+model Organization {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    @unique
+  email           String    @unique
+  phone           String
+  address         String
+  city            String
+  country         String
+  
+  // Relations
+  projects        Project[]
+  agents          Agent[]
+  propertyTypes   PropertyType[]
+  webhooks        WebhookLog[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ============================================================================
+// 2. PROJECT (Real Estate Project)
+// ============================================================================
+model Project {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  projectId       Int       @unique           // e.g., 25 (from MyProjects.js)
+  name            String                      // e.g., "Basswood", "Victoria"
+  description     String?
+  
+  // Google Sheet Integration
+  googleSheetId   String    @unique
+  sheetSyncStatus String    @default("pending") // pending, syncing, synced, failed
+  lastSyncTime    DateTime?
+  syncInterval    Int       @default(3600)  // seconds
+  
+  // Project Details
+  organizationId  String    @db.ObjectId
+  status          String    @default("active") // active, paused, completed, archived
+  city            String?
+  developer       String?
+  budget          Float?
+  
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  properties      Property[]
+  assignments     ProjectAssignment[]
+  campaigns       ProjectCampaign[]
+  spreadsheets    PropertySpreadsheet[]
+  commissions     Commission[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([status])
+}
+
+// ============================================================================
+// 3. PROPERTY
+// ============================================================================
+model Property {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Property Identification
+  unitNumber      String
+  municipalityNumber String?
+  houseNumber     String?
+  
+  // Property Details
+  type            String                  // villa, apt, townhouse, etc.
+  bedrooms        Int?
+  bathrooms       Int?
+  sqft            Float?
+  price           Float?
+  
+  // Location & Metadata
+  projectId       String    @db.ObjectId
+  propertyTypeId  String?   @db.ObjectId
+  floors          String?
+  amenities       String[]
+  description     String?
+  
+  // Ownership
+  ownerId         String?   @db.ObjectId
+  status          String    @default("available") // available, sold, rented, archived
+  
+  // Spreadsheet Reference
+  sheetRowId      Int?                    // Row in Google Sheet
+  sheetLastSyncTime DateTime?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner           Owner?    @relation(fields: [ownerId], references: [id])
+  propertyType    PropertyType? @relation(fields: [propertyTypeId], references: [id])
+  contacts        Contact[]
+  assignments     ProjectAssignment[]
+  commissions     Commission[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([projectId, unitNumber])
+  @@index([projectId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+// ============================================================================
+// 4. OWNER (Property Owner)
+// ============================================================================
+model Owner {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Personal Info
+  firstName       String
+  lastName        String
+  email           String?
+  nationalId      String?   @unique
+  nationality     String?
+  
+  // Contact
+  primaryPhone    String    @unique
+  secondaryPhone  String?
+  
+  // Address
+  city            String?
+  country         String?
+  mailingAddress  String?
+  
+  // Status
+  status          String    @default("active")
+  isBadContact    Boolean   @default(false)  // "bastard" from code
+  isBlacklisted   Boolean   @default(false)
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  properties      Property[]
+  contacts        Contact[]
+  conversations   Conversation[]
+  commissions     Commission[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([isBadContact])
+  @@index([deletedAt])
+}
+
+// ============================================================================
+// 5. AGENT
+// ============================================================================
+model Agent {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Agent Info
+  name            String
+  email           String?
+  whatsappNumber  String    @unique  // e.g., "971509570067"
+  
+  // Agent Status & Role
+  status          String    @default("active") // active, inactive, archived
+  role            String    @default("agent")  // agent, supervisor, manager, admin
+  expertiseAreas  String[]  // e.g., ["luxury", "villa", "investment"]
+  
+  // Organization
+  organizationId  String    @db.ObjectId
+  reportingTo     String?   @db.ObjectId      // Supervisor/Manager
+  
+  // Commission Info
+  commissionRate  Float?                      // e.g., 2.5%
+  
+  // WhatsApp Session
+  whatsappSessionPath String?
+  sessionStatus   String    @default("disconnected") // connected, disconnected, error
+  lastActive      DateTime?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supervisor      Agent?    @relation("AgentSupervisor", fields: [reportingTo], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subordinates    Agent[]   @relation("AgentSupervisor")
+  bankDetails     BankDetails?
+  assignments     ProjectAssignment[]
+  conversations   Conversation[]
+  commissions     Commission[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([status])
+  @@index([role])
+  @@index([deletedAt])
+}
+
+model BankDetails {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  agentId         String    @unique @db.ObjectId
+  
+  bankName        String
+  accountNumber   String
+  accountHolderName String
+  iban            String?
+  swiftCode       String?
+  
+  isVerified      Boolean   @default(false)
+  
+  agent           Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================================
+// 6. CONTACT
+// ============================================================================
+model Contact {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Identification
+  phone           String
+  phoneCountry    String    @default("AE")
+  phoneValidated  Boolean   @default(false)
+  
+  // Content
+  ownerId         String?   @db.ObjectId
+  propertyId      String?   @db.ObjectId
+  type            String    @default("phone") // phone, email, whatsapp
+  isPrimary       Boolean   @default(false)
+  
+  // Contact Status
+  status          String    @default("valid")      // valid, invalid, do-not-contact
+  isBlacklisted   Boolean   @default(false)
+  
+  // Validation History
+  validationNotes String?
+  validatedAt     DateTime?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  owner           Owner?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  property        Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([phone, type])
+  @@index([ownerId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+// ============================================================================
+// 7. PROJECT ASSIGNMENT
+// ============================================================================
+model ProjectAssignment {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  agentId         String    @db.ObjectId
+  projectId       String    @db.ObjectId
+  propertyId      String?   @db.ObjectId    // Optional: specific property
+  
+  // Assignment Details
+  assignmentDate  DateTime  @default(now())
+  dueDate         DateTime?
+  status          String    @default("active") // active, completed, transferred
+  notes           String?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  agent           Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  property        Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([agentId, projectId, propertyId])
+  @@index([agentId])
+  @@index([projectId])
+  @@index([deletedAt])
+}
+
+// ============================================================================
+// 8. CONVERSATION
+// ============================================================================
+model Conversation {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Participants
+  agentId         String    @db.ObjectId
+  ownerId         String    @db.ObjectId
+  
+  // Conversation Details
+  whatsappChatId  String?   @unique
+  status          String    @default("active") // active, closed, archived
+  topic           String?   // property inquiry, commission discussion, etc.
+  
+  // Message Stats
+  messageCount    Int       @default(0)
+  
+  // Timestamps
+  startTime       DateTime  @default(now())
+  endTime         DateTime?
+  lastMessageTime DateTime?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  agent           Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  owner           Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  messages        Message[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([agentId, ownerId])
+  @@index([agentId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+// ============================================================================
+// 9. MESSAGE
+// ============================================================================
+model Message {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Message Content
+  conversationId  String    @db.ObjectId
+  content         String
+  messageType     String    @default("text") // text, image, document, etc.
+  
+  // Sender/Receiver
+  senderId        String    @db.ObjectId    // AgentId or OwnerId
+  senderType      String                    // Agent or Owner
+  
+  // WhatsApp Reference
+  whatsappMessageId String?
+  whatsappStatus  String?   // sent, delivered, read, failed
+  
+  // Message Analysis
+  hasQuotedMsg    Boolean   @default(false)
+  quotedMessageId String?   @db.ObjectId   // Reference to quoted message
+  sentiment       String?                  // positive, neutral, negative
+  
+  // Metadata
+  mediaUrl        String?
+  mediaType       String?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  quotedMessage   Message?  @relation("QuotedMessages", fields: [quotedMessageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  quoted          Message[] @relation("QuotedMessages")
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([senderType])
+  @@index([whatsappStatus])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+// ============================================================================
+// 10. PROJECT CAMPAIGN
+// ============================================================================
+model ProjectCampaign {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  projectId       String    @db.ObjectId
+  campaignName    String
+  description     String?
+  
+  // Campaign Status
+  status          String    @default("draft")  // draft, scheduled, running, completed, failed
+  startDate       DateTime
+  endDate         DateTime?
+  
+  // Campaign Stats
+  totalRecipients Int       @default(0)
+  successCount    Int       @default(0)
+  failureCount    Int       @default(0)
+  responseCount   Int       @default(0)
+  
+  // Campaign Details
+  targetType      String    // all_owners, specific_property, recent_leads
+  targetQuery     String?
+  messageTemplate String?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages        CampaignMessage[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model CampaignMessage {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  campaignId      String    @db.ObjectId
+  receiverPhone   String
+  messageContent  String
+  
+  status          String    @default("pending") // pending, sent, delivered, failed
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  
+  // Relations
+  campaign        ProjectCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([campaignId])
+  @@index([status])
+}
+
+// ============================================================================
+// 11. COMMISSION
+// ============================================================================
+model Commission {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Commission Details
+  projectId       String    @db.ObjectId
+  propertyId      String    @db.ObjectId
+  
+  // Amount Calculation
+  amount          Float
+  rate            Float?    // percentage or fixed
+  rateType        String    @default("percentage") // percentage, fixed
+  
+  // Parties Involved
+  agentId         String?   @db.ObjectId
+  ownerId         String?   @db.ObjectId
+  
+  // Status
+  status          String    @default("pending")  // pending, approved, paid, disputed
+  
+  // Dates
+  earnedDate      DateTime  @default(now())
+  approvedDate    DateTime?
+  
+  // Soft Delete
+  deletedAt       DateTime?
+  
+  // Relations
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  property        Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  agent           Agent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  owner           Owner?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  payments        CommissionPayment[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([propertyId])
+  @@index([agentId])
+  @@index([status])
+  @@index([earnedDate])
+  @@index([deletedAt])
+}
+
+model CommissionPayment {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  commissionId    String    @db.ObjectId
+  amount          Float
+  
+  paymentMethod   String    // bank_transfer, check, cash
+  paymentDate     DateTime
+  referenceNumber String?
+  notes           String?
+  
+  // Relations
+  commission      Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([commissionId])
+}
+
+// ============================================================================
+// 12. PROPERTY TYPE
+// ============================================================================
+model PropertyType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  organizationId  String    @db.ObjectId
+  name            String    // villa, apartment, townhouse
+  description     String?
+  
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  properties      Property[]
+  
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+// ============================================================================
+// 13. PROPERTY SPREADSHEET (Google Sheets Sync)
+// ============================================================================
+model PropertySpreadsheet {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  projectId       String    @unique @db.ObjectId
+  sheetName       String
+  googleSheetId   String
+  
+  // Sync Status
+  lastSyncTime    DateTime?
+  syncStatus      String    @default("pending")
+  syncError       String?
+  
+  // Mapping
+  columnMappings  Json      // Maps sheet columns to property fields
+  
+  // Relations
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ============================================================================
+// 14. WEBHOOK LOG
+// ============================================================================
+model WebhookLog {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  organizationId  String    @db.ObjectId
+  event           String    // sheet.sync, campaign.sent, etc.
+  payload         Json
+  
+  status          String    @default("success") // success, failed, pending
+  errorMessage    String?
+  
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([event])
+  @@index([createdAt])
+}
