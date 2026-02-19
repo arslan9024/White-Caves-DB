@@ -202,13 +202,15 @@ db.transactions.aggregate([
   { $sort: { totalSales: -1 } }
 ]);
 
-// 24. Find leases expiring soon
+// 24. Find leases expiring soon (within next 90 days)
+const today = new Date();
+const ninetyDaysFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 db.transactions.find({
   type: { $in: ["lease", "rent"] },
   status: "completed",
   "leasingDetails.endDate": {
-    $gte: new ISODate().toISOString().split('T')[0],
-    $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    $gte: today.toISOString(),
+    $lte: ninetyDaysFromNow.toISOString()
   }
 });
 
